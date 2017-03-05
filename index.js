@@ -19,7 +19,7 @@ module.exports = function (title, cb) {
 
   function add (item) {
     if (!active) return
-    if (typeof item === 'string') item = { name: item, sub: '', value: item }
+    if (typeof item === 'string') item = { head: item, body: '', value: item }
     items.push(item)
     draw()
   }
@@ -27,13 +27,13 @@ module.exports = function (title, cb) {
   function onkeypress (ch, key) {
     if (!key) return
     if (key.ctrl && key.name === 'c') process.exit(130)
-    if (key.name === 'up') {
+    if (key.name === 'up' || key.name === 'k') {
       let nextsel = selected-1;
       while (nextsel > -1 && items[nextsel].skip) nextsel--
       if (nextsel < 0) return
       selected = nextsel
       draw()
-    } else if (key.name === 'down') {
+    } else if (key.name === 'down' || key.name === 'j') {
       let nextsel = selected+1
       while (nextsel < items.length && items[nextsel].skip) nextsel++
       if (nextsel >= items.length) return
@@ -57,6 +57,7 @@ module.exports = function (title, cb) {
   function draw () {
     var status = ''
     const CURSOR = '> '
+    const UNSEL  = '# '
     const SPACE  = '  '
     var q = chalk.green('? ') + chalk.bold(title)
     if (active) {
@@ -64,16 +65,18 @@ module.exports = function (title, cb) {
       else if (!moved) status = ' (use arrow keys)'
 
       log(items.reduce((s, item, index) => {
-        const sub = item.sub ? '\n' + SPACE + item.sub : ''
-        return s + (index === selected
-          ? chalk.cyan(CURSOR + item.name) + sub
-          : SPACE + item.name + sub) + '\n'
+        const sub = (item.body) ? '\n' + SPACE + item.body : ''
+        const tln = (index === selected)
+          ? chalk.cyan(CURSOR + ((item.head_s)? item.head_s : item.head)) + sub
+          : ((item.skip)? SPACE : UNSEL) + item.head + sub
+
+        return s + tln + '\n'
       }
       ,
       `${q}${status}\n`))
 
     } else {
-      log(q + ' ' + chalk.cyan(items[selected].name) + '\n')
+      log(q + ' ' + chalk.cyan(items[selected].head) + '\n')
     }
   }
 

@@ -1,12 +1,12 @@
 'use strict'
 
-var keypress = require('keypress')
-var chalk = require('chalk')
-var log = require('single-line-log').stdout
+const keypress = require('keypress')
+const chalk = require('chalk')
+const log = require('single-line-log').stdout
 
 module.exports = function (title, cb) {
-  var items = []
-  var isRaw = process.stdin.isRaw
+  const items = []
+  const isRaw = process.stdin.isRaw
   var active = true
   var moved = false
   var selected = 0
@@ -19,7 +19,7 @@ module.exports = function (title, cb) {
 
   function add (item) {
     if (!active) return
-    if (typeof item === 'string') item = { name: item, value: item }
+    if (typeof item === 'string') item = { name: item, sub: '', value: item }
     items.push(item)
     draw()
   }
@@ -28,12 +28,16 @@ module.exports = function (title, cb) {
     if (!key) return
     if (key.ctrl && key.name === 'c') process.exit(130)
     if (key.name === 'up') {
-      if (selected === 0) return
-      selected--
+      let nextsel = selected-1;
+      while (nextsel > -1 && items[nextsel].skip) nextsel--
+      if (nextsel < 0) return
+      selected = nextsel
       draw()
     } else if (key.name === 'down') {
-      if (selected >= items.length - 1) return
-      selected++
+      let nextsel = selected+1
+      while (nextsel < items.length && items[nextsel].skip) nextsel++
+      if (nextsel >= items.length) return
+      selected = nextsel
       moved = true
       draw()
     } else if (items.length > 0 && key.name === 'return') {
@@ -52,14 +56,22 @@ module.exports = function (title, cb) {
 
   function draw () {
     var status = ''
+    const CURSOR = '> '
+    const SPACE  = '  '
     var q = chalk.green('? ') + chalk.bold(title)
     if (active) {
       if (items.length === 0) status = ' (waiting...)'
       else if (!moved) status = ' (use arrow keys)'
 
-      log(items.reduce(function (s, item, index) {
-        return s + (index === selected ? chalk.cyan('> ' + item.name) : '  ' + item.name) + '\n'
-      }, q + status + '\n'))
+      log(items.reduce((s, item, index) => {
+        const sub = item.sub ? '\n' + SPACE + item.sub : ''
+        return s + (index === selected
+          ? chalk.cyan(CURSOR + item.name) + sub
+          : SPACE + item.name + sub) + '\n'
+      }
+      ,
+      `${q}${status}\n`))
+
     } else {
       log(q + ' ' + chalk.cyan(items[selected].name) + '\n')
     }
